@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>简历管理系统</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #f5f5f7;
+  color: #1d1d1f;
+  min-height: 100vh;
+}
+
+.header {
+  background: #fff;
+  border-bottom: 1px solid #e5e5e7;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.header h1 { font-size: 18px; font-weight: 600; }
+.header .count { font-size: 13px; color: #86868b; }
+
+.container { max-width: 960px; margin: 0 auto; padding: 24px; }
+
+/* Upload zone */
+.upload-zone {
+  border: 2px dashed #d2d2d7;
+  border-radius: 8px;
+  padding: 40px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .2s, background .2s;
+  background: #fff;
+}
+.upload-zone:hover, .upload-zone.dragover {
+  border-color: #0071e3;
+  background: #f0f7ff;
+}
+.upload-zone p { color: #86868b; font-size: 14px; }
+.upload-zone .hint { font-size: 12px; color: #aeaeb2; margin-top: 6px; }
+.upload-btn {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 8px 20px;
+  background: #0071e3;
+  color: #fff;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background .2s;
+}
+.upload-btn:hover { background: #0077ed; }
+
+/* Status */
+.status {
+  margin-top: 12px;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  display: none;
+}
+.status.loading { display: block; background: #e8f0fe; color: #1967d2; }
+.status.error { display: block; background: #fce8e6; color: #c5221f; }
+.status.success { display: block; background: #e6f4ea; color: #137333; }
+
+/* Table */
+.table-wrap {
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #e5e5e7;
+  margin-top: 24px;
+  overflow: hidden;
+}
+.empty { padding: 48px; text-align: center; color: #86868b; font-size: 14px; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 10px 14px; font-size: 13px; }
+th { background: #fafafa; color: #6e6e73; font-weight: 500; border-bottom: 1px solid #e5e5e7; }
+td { border-bottom: 1px solid #f0f0f2; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #fafafa; }
+tr { cursor: pointer; }
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.badge-pdf { background: #fce8e6; color: #c5221f; }
+.badge-word { background: #e8f0fe; color: #1967d2; }
+.badge-image { background: #fef7e0; color: #e37400; }
+
+.skill-tag {
+  display: inline-block;
+  background: #f0f0f2;
+  color: #6e6e73;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  margin: 2px;
+}
+
+/* Detail modal */
+.modal-mask {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.3);
+  z-index: 100;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 60px 20px;
+  overflow-y: auto;
+}
+.modal-mask.open { display: flex; }
+.modal {
+  background: #fff;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 680px;
+  padding: 32px;
+  position: relative;
+}
+.modal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 20px;
+  color: #86868b;
+  padding: 4px 8px;
+}
+.modal h2 { font-size: 22px; margin-bottom: 20px; }
+.modal .section { margin-bottom: 18px; }
+.modal .section-label { font-size: 12px; color: #86868b; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+.modal .section-content { font-size: 14px; line-height: 1.6; color: #1d1d1f; white-space: pre-wrap; }
+.modal .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.modal .field { }
+.modal .field .label { font-size: 12px; color: #86868b; }
+.modal .field .value { font-size: 14px; margin-top: 2px; }
+
+.conf-bar {
+  height: 4px;
+  border-radius: 2px;
+  background: #e5e5e7;
+  margin-top: 4px;
+  overflow: hidden;
+}
+.conf-bar .fill { height: 100%; border-radius: 2px; background: #34a853; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>简历管理系统</h1>
+  <span class="count" id="count">0 份简历</span>
+</div>
+
+<div class="container">
+  <div class="upload-zone" id="uploadZone">
+    <p>拖拽简历文件到此处，或点击上传</p>
+    <p class="hint">支持 PDF · Word · 图片（PNG/JPG），最大 20MB</p>
+    <label for="fileInput" class="upload-btn">选择文件</label>
+    <input type="file" id="fileInput" accept=".pdf,.docx,.doc,.png,.jpg,.jpeg,.webp,.bmp" multiple hidden>
+  </div>
+  <div class="status" id="status"></div>
+
+  <div class="table-wrap">
+    <div class="empty" id="empty">还没有简历，上传一份试试</div>
+    <table id="table" style="display:none">
+      <thead><tr>
+        <th>姓名</th><th>手机</th><th>邮箱</th><th>学历</th><th>格式</th><th>技能</th><th>置信度</th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="modal-mask" id="modalMask" onclick="closeModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeModal()">&times;</button>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<script>
+var API = '/api';
+
+// ── 上传 ────────────────────────────────────────────────
+var zone = document.getElementById('uploadZone');
+var input = document.getElementById('fileInput');
+var status = document.getElementById('status');
+
+zone.addEventListener('dragover', function(e) { e.preventDefault(); zone.classList.add('dragover'); });
+zone.addEventListener('dragleave', function() { zone.classList.remove('dragover'); });
+zone.addEventListener('drop', function(e) {
+  e.preventDefault();
+  zone.classList.remove('dragover');
+  if (e.dataTransfer.files.length) uploadFiles(e.dataTransfer.files);
+});
+input.addEventListener('change', function() {
+  console.log('File input change, files:', input.files.length);
+  if (input.files.length) {
+    uploadFiles(input.files);
+  }
+  input.value = '';
+});
+
+async function uploadFiles(files) {
+  zone.style.opacity = '0.5';
+  zone.style.pointerEvents = 'none';
+
+  for (var i = 0; i < files.length; i++) {
+    var f = files[i];
+    console.log('Uploading:', f.name, f.size, f.type);
+    showStatus('loading', '正在上传解析: ' + f.name + ' ...');
+    var fd = new FormData();
+    fd.append('file', f);
+    try {
+      var resp = await fetch(API + '/resumes/upload', { method: 'POST', body: fd });
+      var data = await resp.json();
+      console.log('Upload response:', resp.status, data);
+      if (resp.ok) {
+        showStatus('success', f.name + ' 解析完成');
+        fetchList();
+      } else {
+        showStatus('error', data.error || '上传失败');
+      }
+    } catch (e) {
+      console.error('Upload error:', e);
+      showStatus('error', '网络错误: ' + (e.message || '无法连接服务器，请确认服务已启动'));
+    }
+  }
+
+  zone.style.opacity = '';
+  zone.style.pointerEvents = '';
+}
+
+function showStatus(type, msg) {
+  console.log('Status:', type, msg);
+  status.className = 'status ' + type;
+  status.textContent = msg;
+  if (type === 'success') setTimeout(function() { status.className = 'status'; }, 4000);
+}
+
+// ── 列表 ────────────────────────────────────────────────
+async function fetchList() {
+  try {
+    var resp = await fetch(API + '/resumes');
+    var resumes = await resp.json();
+    renderList(resumes);
+  } catch (e) {
+    console.error('Fetch list error:', e);
+  }
+}
+
+function renderList(resumes) {
+  document.getElementById('count').textContent = resumes.length + ' 份简历';
+  var table = document.getElementById('table');
+  var empty = document.getElementById('empty');
+  var tbody = document.getElementById('tbody');
+
+  if (resumes.length === 0) {
+    table.style.display = 'none';
+    empty.style.display = 'block';
+    return;
+  }
+  table.style.display = '';
+  empty.style.display = 'none';
+
+  tbody.innerHTML = resumes.map(function(r) {
+    var fmtBadge = '<span class="badge badge-' + r.sourceFormat + '">' + r.sourceFormat.toUpperCase() + '</span>';
+    var skills = (r.skills || []).slice(0, 3).map(function(s) {
+      return '<span class="skill-tag">' + s + '</span>';
+    }).join('');
+    var pct = Math.round((r.confidence || 0) * 100);
+    return '<tr onclick="showDetail(' + r.id + ')">' +
+      '<td>' + (r.name || '-') + '</td>' +
+      '<td>' + (r.phone || '-') + '</td>' +
+      '<td>' + (r.email || '-') + '</td>' +
+      '<td>' + (r.education || '-') + '</td>' +
+      '<td>' + fmtBadge + '</td>' +
+      '<td>' + (skills || '-') + '</td>' +
+      '<td>' + pct + '%</td>' +
+      '</tr>';
+  }).join('');
+}
+
+// ── 详情弹窗 ────────────────────────────────────────────
+async function showDetail(id) {
+  var resp = await fetch(API + '/resumes/' + id);
+  var r = await resp.json();
+  var pct = Math.round((r.confidence || 0) * 100);
+
+  var html = '<h2>' + (r.name || '未识别姓名') + '</h2>';
+
+  html += '<div class="section"><div class="section-label">基本信息</div>';
+  html += '<div class="field-grid">';
+  html += field('手机', r.phone);
+  html += field('邮箱', r.email);
+  html += field('性别', r.gender);
+  html += field('出生年份', r.birthYear);
+  html += field('学历', r.education);
+  html += field('学校', r.school);
+  html += field('专业', r.major);
+  html += field('工作年限', r.workYears);
+  html += '</div></div>';
+
+  if (r.currentCompany || r.currentPosition) {
+    html += '<div class="section"><div class="section-label">当前职位</div>';
+    html += '<div class="field-grid">';
+    html += field('公司', r.currentCompany);
+    html += field('职位', r.currentPosition);
+    html += '</div></div>';
+  }
+
+  if (r.skills && r.skills.length) {
+    html += '<div class="section"><div class="section-label">技能标签</div>';
+    html += '<div class="section-content">';
+    html += r.skills.map(function(s) { return '<span class="skill-tag">' + s + '</span>'; }).join(' ');
+    html += '</div></div>';
+  }
+
+  if (r.workExperienceText) {
+    html += '<div class="section"><div class="section-label">工作经历</div>';
+    html += '<div class="section-content">' + (r.workExperienceText || '-') + '</div></div>';
+  }
+
+  if (r.educationText) {
+    html += '<div class="section"><div class="section-label">教育经历</div>';
+    html += '<div class="section-content">' + (r.educationText || '-') + '</div></div>';
+  }
+
+  html += '<div class="section"><div class="section-label">解析置信度</div>';
+  html += '<div>' + pct + '%</div>';
+  html += '<div class="conf-bar"><div class="fill" style="width:' + pct + '%"></div></div>';
+  html += '</div>';
+
+  document.getElementById('modalContent').innerHTML = html;
+  document.getElementById('modalMask').classList.add('open');
+}
+
+function field(label, value) {
+  return '<div class="field"><div class="label">' + label + '</div><div class="value">' + (value || '-') + '</div></div>';
+}
+
+function closeModal(e) {
+  if (e && e.target !== document.getElementById('modalMask')) return;
+  document.getElementById('modalMask').classList.remove('open');
+}
+
+// ── 初始化 ──────────────────────────────────────────────
+fetchList();
+</script>
+</body>
+</html>

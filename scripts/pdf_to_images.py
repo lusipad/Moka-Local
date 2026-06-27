@@ -4,8 +4,8 @@ Usage: python scripts/pdf_to_images.py <pdf_path> <output_dir>
 Output: JSON array of image paths to stdout.
 """
 import json
+import os
 import sys
-import tempfile
 from pathlib import Path
 
 try:
@@ -13,6 +13,21 @@ try:
 except ImportError:
     print(json.dumps({"error": "pdf2image not installed. Run: pip install pdf2image"}))
     sys.exit(1)
+
+
+def _find_poppler() -> str | None:
+    """Auto-detect bundled poppler for Windows release."""
+    candidates = [
+        # Bundled in release zip
+        os.path.join(os.path.dirname(__file__), "..", "poppler", "Library", "bin"),
+        # Common system paths
+        r"C:\poppler\Library\bin",
+        r"C:\Program Files\poppler\Library\bin",
+    ]
+    for p in candidates:
+        if os.path.isdir(p):
+            return p
+    return None
 
 
 def main():
@@ -29,8 +44,11 @@ def main():
         sys.exit(1)
 
     try:
-        # Convert PDF to images (150 DPI is good enough for OCR)
-        images = convert_from_path(pdf_path, dpi=200, fmt="png")
+        kwargs = {"dpi": 200, "fmt": "png"}
+        poppler_path = _find_poppler()
+        if poppler_path:
+            kwargs["poppler_path"] = poppler_path
+        images = convert_from_path(pdf_path, **kwargs)
 
         paths = []
         for i, img in enumerate(images):

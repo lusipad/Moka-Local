@@ -1,5 +1,17 @@
-@echo off
+﻿@echo off
 chcp 65001 >nul
+
+:: Use bundled Python if available
+if exist "python\python.exe" (
+    set "PATH=%CD%\python;%CD%\python\Scripts;%PATH%"
+    echo [✓] 使用内置 Python
+)
+
+:: Use bundled Poppler if available (for pdf2image)
+if exist "poppler\Library\bin" (
+    set "PATH=%CD%\poppler\Library\bin;%PATH%"
+)
+
 echo ========================================
 echo   简历管理系统
 echo ========================================

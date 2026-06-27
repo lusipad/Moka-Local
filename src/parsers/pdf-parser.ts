@@ -4,6 +4,7 @@ import path from 'path';
 import { PDFParse } from 'pdf-parse';
 import { ParseResult } from '../types';
 import { getOcrEngine } from '../ocr';
+import { getPythonCmd } from '../python-path';
 
 const PROJECT_ROOT = path.resolve(__dirname, '..', '..');
 const PDF_TO_IMAGES = path.join(PROJECT_ROOT, 'scripts', 'pdf_to_images.py');
@@ -38,7 +39,7 @@ async function parseAsScan(filePath: string, pageCount: number, startMs: number)
   try {
     // Step 1: Convert PDF pages to images
     const imgResult = await new Promise<{ pages: number; images: string[] }>((resolve, reject) => {
-      execFile('python', [PDF_TO_IMAGES, filePath, tmpDir], {
+      execFile(getPythonCmd(), [PDF_TO_IMAGES, filePath, tmpDir], {
         maxBuffer: 10 * 1024 * 1024,
         timeout: 120000,
         env: process.env,

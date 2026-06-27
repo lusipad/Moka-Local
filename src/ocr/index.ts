@@ -10,6 +10,7 @@
  */
 import { execFile } from 'child_process';
 import path from 'path';
+import { getPythonCmd } from '../python-path';
 
 const PROJECT_ROOT = path.resolve(__dirname, '..', '..');
 const OCR_SCRIPT = path.join(PROJECT_ROOT, 'scripts', 'ocr.py');
@@ -26,7 +27,7 @@ const paddleEngine: OcrEngine = {
   name: 'paddleocr',
   recognize(imagePath: string): Promise<string> {
     return new Promise((resolve, reject) => {
-      execFile('python', [OCR_SCRIPT, imagePath], {
+      execFile(getPythonCmd(), [OCR_SCRIPT, imagePath], {
         maxBuffer: 50 * 1024 * 1024,
         timeout: 180000,
         encoding: 'buffer',

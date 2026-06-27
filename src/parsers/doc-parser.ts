@@ -3,6 +3,7 @@
  * 使用 antiword 或 textract 提取文本
  */
 import { execFile } from 'child_process';
+import { getPythonCmd } from '../python-path';
 import { ParseResult } from '../types';
 
 export async function parseDoc(filePath: string): Promise<ParseResult> {
@@ -58,7 +59,7 @@ function tryAntiword(filePath: string): Promise<string> {
 
 function tryTextract(filePath: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    execFile('python', ['-c', `
+    execFile(getPythonCmd(), ['-c', `
 import sys, json
 try:
     import textract
@@ -85,7 +86,7 @@ except Exception as e:
 
 function tryOlefile(filePath: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    execFile('python', ['-c', `
+    execFile(getPythonCmd(), ['-c', `
 import sys, json, re
 try:
     import olefile

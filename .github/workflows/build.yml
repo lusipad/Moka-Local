@@ -61,15 +61,41 @@ jobs:
         with:
           node-version: 22
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: Install dependencies
+      - name: Install Node dependencies & build
         run: |
           npm install
           npx tsc
-          pip install paddlepaddle paddleocr pdf2image
+
+      - name: Download embedded Python
+        run: |
+          curl -L -o python-embed.zip https://www.python.org/ftp/python/3.12.8/python-3.12.8-embed-amd64.zip
+          mkdir python
+          tar -xf python-embed.zip -C python
+          del python-embed.zip
+
+          # Enable pip (uncomment "import site" in python312._pth)
+          (Get-Content python\python312._pth) -replace '#import site', 'import site' | Set-Content python\python312._pth
+
+          # Install pip
+          curl -L -o get-pip.py https://bootstrap.pypa.io/get-pip.py
+          python\python.exe get-pip.py --no-warn-script-location
+          del get-pip.py
+
+          # Install Python dependencies
+          python\python.exe -m pip install --no-warn-script-location paddlepaddle paddleocr pdf2image textract olefile
+
+      - name: Download Poppler (for pdf2image)
+        run: |
+          curl -L -o poppler.zip https://github.com/oschwartz10612/poppler-windows/releases/download/v24.08.0-0/Release-24.08.0-0.zip
+          mkdir poppler
+          tar -xf poppler.zip -C poppler
+          del poppler.zip
+          # Flatten: poppler/Release-24.08.0-0/* -> poppler/
+          $dir = Get-ChildItem poppler -Directory | Select-Object -First 1
+          if ($dir) {
+            Move-Item "$($dir.FullName)\*" poppler\
+            Remove-Item $dir.FullName -Recurse -Force
+          }
 
       - name: Package release
         run: |
@@ -78,6 +104,8 @@ jobs:
           xcopy /E /I node_modules release\Moka-Local\node_modules
           xcopy /E /I scripts release\Moka-Local\scripts
           xcopy /E /I public release\Moka-Local\public
+          xcopy /E /I python release\Moka-Local\python
+          xcopy /E /I poppler release\Moka-Local\poppler
           copy package.json release\Moka-Local\
           copy .env.example release\Moka-Local\
           copy install.bat release\Moka-Local\

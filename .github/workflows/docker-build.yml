@@ -1,4 +1,4 @@
-name: Build and Push Docker Image
+name: Build
 
 on:
   push:
@@ -50,3 +50,41 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  release-windows:
+    runs-on: windows-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          npm install
+          npx tsc
+          pip install paddlepaddle paddleocr pdf2image
+
+      - name: Package release
+        run: |
+          mkdir release\Moka-Local
+          xcopy /E /I dist release\Moka-Local\dist
+          xcopy /E /I node_modules release\Moka-Local\node_modules
+          xcopy /E /I scripts release\Moka-Local\scripts
+          xcopy /E /I public release\Moka-Local\public
+          copy package.json release\Moka-Local\
+          copy .env.example release\Moka-Local\
+          copy install.bat release\Moka-Local\
+          copy start.bat release\Moka-Local\
+          powershell Compress-Archive -Path release\Moka-Local -DestinationPath Moka-Local-windows.zip
+
+      - name: Upload release asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: Moka-Local-windows.zip

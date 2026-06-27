@@ -67,8 +67,9 @@ jobs:
           npx tsc
 
       - name: Download embedded Python
+        shell: pwsh
         run: |
-          curl -L -o python-embed.zip https://www.python.org/ftp/python/3.12.8/python-3.12.8-embed-amd64.zip
+          Invoke-WebRequest -Uri 'https://www.python.org/ftp/python/3.12.8/python-3.12.8-embed-amd64.zip' -OutFile python-embed.zip
           mkdir python
           tar -xf python-embed.zip -C python
           del python-embed.zip
@@ -77,7 +78,7 @@ jobs:
           (Get-Content python\python312._pth) -replace '#import site', 'import site' | Set-Content python\python312._pth
 
           # Install pip
-          curl -L -o get-pip.py https://bootstrap.pypa.io/get-pip.py
+          Invoke-WebRequest -Uri 'https://bootstrap.pypa.io/get-pip.py' -OutFile get-pip.py
           python\python.exe get-pip.py --no-warn-script-location
           del get-pip.py
 
@@ -88,8 +89,9 @@ jobs:
           python\python.exe -m pip install --no-warn-script-location paddlepaddle paddleocr pdf2image textract olefile
 
       - name: Download Poppler (for pdf2image)
+        shell: pwsh
         run: |
-          curl -L -o poppler.zip https://github.com/oschwartz10612/poppler-windows/releases/download/v24.08.0-0/Release-24.08.0-0.zip
+          Invoke-WebRequest -Uri 'https://github.com/oschwartz10612/poppler-windows/releases/download/v24.08.0-0/Release-24.08.0-0.zip' -OutFile poppler.zip
           mkdir poppler
           tar -xf poppler.zip -C poppler
           del poppler.zip

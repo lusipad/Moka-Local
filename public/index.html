@@ -1,362 +1,775 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>简历管理系统</title>
+<title>简历管理系统 — Moka</title>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background: #f5f5f7;
-  color: #1d1d1f;
-  min-height: 100vh;
+
+:root {
+  --bg: #f8f9fb;
+  --surface: #fff;
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --success: #059669;
+  --warning: #d97706;
+  --danger: #dc2626;
+  --text: #111827;
+  --text2: #4b5563;
+  --text3: #9ca3af;
+  --border: #e5e7eb;
+  --border2: #f3f4f6;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.04);
+  --radius: 8px;
+  --radius-sm: 6px;
+  --transition: 150ms ease;
 }
 
-.header {
-  background: #fff;
-  border-bottom: 1px solid #e5e5e7;
-  padding: 16px 24px;
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Top Bar */
+.topbar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  height: 56px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 50;
 }
-.header h1 { font-size: 18px; font-weight: 600; }
-.header .count { font-size: 13px; color: #86868b; }
-
-.container { max-width: 960px; margin: 0 auto; padding: 24px; }
-
-/* Upload zone */
-.upload-zone {
-  border: 2px dashed #d2d2d7;
+.topbar-brand { display: flex; align-items: center; gap: 10px; }
+.topbar-logo {
+  width: 32px; height: 32px;
+  background: var(--primary);
   border-radius: 8px;
-  padding: 40px;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-weight: 700; font-size: 16px;
+}
+.topbar-title { font-size: 16px; font-weight: 600; }
+.topbar-right { display: flex; align-items: center; gap: 16px; }
+.topbar-stat { font-size: 13px; color: var(--text2); display: flex; align-items: center; gap: 4px; }
+.topbar-stat strong { color: var(--primary); font-size: 15px; }
+
+/* Layout */
+.layout { display: flex; height: calc(100vh - 56px); }
+.main { flex: 1; overflow-y: auto; padding: 24px 32px 32px; }
+.main-inner { max-width: 1100px; margin: 0 auto; }
+
+/* Upload */
+.upload-card {
+  background: var(--surface);
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 32px;
   text-align: center;
   cursor: pointer;
-  transition: border-color .2s, background .2s;
-  background: #fff;
+  transition: border-color var(--transition), background var(--transition), box-shadow var(--transition);
 }
-.upload-zone:hover, .upload-zone.dragover {
-  border-color: #0071e3;
-  background: #f0f7ff;
+.upload-card:hover, .upload-card.dragover {
+  border-color: var(--primary);
+  background: #f5f3ff;
+  box-shadow: 0 0 0 3px rgba(79,70,229,.08);
 }
-.upload-zone p { color: #86868b; font-size: 14px; }
-.upload-zone .hint { font-size: 12px; color: #aeaeb2; margin-top: 6px; }
+.upload-card.processing { pointer-events: none; opacity: .6; border-style: solid; border-color: var(--border); }
+.upload-icon {
+  width: 48px; height: 48px;
+  margin: 0 auto 12px;
+  background: #f5f3ff;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+.upload-icon svg { width: 24px; height: 24px; color: var(--primary); }
+.upload-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+.upload-hint { font-size: 13px; color: var(--text3); margin-bottom: 16px; }
+.upload-formats { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+.format-tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 10px; background: var(--border2);
+  border-radius: 20px; font-size: 12px; color: var(--text2);
+}
+.format-tag .dot { width: 6px; height: 6px; border-radius: 50%; }
+.dot-pdf { background: #ef4444; }
+.dot-word { background: #3b82f6; }
+.dot-img { background: #f59e0b; }
 .upload-btn {
-  display: inline-block;
-  margin-top: 12px;
-  padding: 8px 20px;
-  background: #0071e3;
-  color: #fff;
-  border-radius: 6px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: background .2s;
+  display: inline-block; margin-top: 16px; padding: 8px 20px;
+  background: var(--primary); color: #fff; border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 500; cursor: pointer;
+  transition: background var(--transition); border: none;
 }
-.upload-btn:hover { background: #0077ed; }
+.upload-btn:hover { background: var(--primary-hover); }
 
 /* Status */
-.status {
-  margin-top: 12px;
-  padding: 10px 16px;
-  border-radius: 6px;
-  font-size: 13px;
-  display: none;
+.status-bar {
+  margin-top: 12px; padding: 10px 16px;
+  border-radius: var(--radius-sm); font-size: 13px;
+  display: none; align-items: center; gap: 8px;
 }
-.status.loading { display: block; background: #e8f0fe; color: #1967d2; }
-.status.error { display: block; background: #fce8e6; color: #c5221f; }
-.status.success { display: block; background: #e6f4ea; color: #137333; }
+.status-bar.show { display: flex; }
+.status-bar.loading { background: #eef2ff; color: #4338ca; }
+.status-bar.success { background: #ecfdf5; color: #065f46; }
+.status-bar.error { background: #fef2f2; color: #991b1b; }
+.spin {
+  width: 16px; height: 16px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin .6s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Toolbar */
+.toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-top: 20px; flex-wrap: wrap;
+}
+.search-box { position: relative; flex: 1; min-width: 200px; max-width: 360px; }
+.search-box svg {
+  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  width: 16px; height: 16px; color: var(--text3); pointer-events: none;
+}
+.search-box input {
+  width: 100%; padding: 8px 12px 8px 36px;
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  font-size: 13px; color: var(--text); background: var(--surface);
+  outline: none; transition: border-color var(--transition), box-shadow var(--transition);
+}
+.search-box input::placeholder { color: var(--text3); }
+.search-box input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79,70,229,.1); }
+.toolbar-actions { display: flex; gap: 8px; }
+.btn-ghost {
+  padding: 8px 14px; border: 1px solid var(--border);
+  background: var(--surface); border-radius: var(--radius-sm);
+  font-size: 13px; color: var(--text2); cursor: pointer;
+  transition: all var(--transition);
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.btn-ghost:hover { background: var(--border2); border-color: var(--text3); }
+.btn-ghost.active { background: #eef2ff; border-color: var(--primary); color: var(--primary); }
+.btn-ghost svg { width: 14px; height: 14px; }
 
 /* Table */
-.table-wrap {
-  background: #fff;
-  border-radius: 8px;
-  border: 1px solid #e5e5e7;
-  margin-top: 24px;
-  overflow: hidden;
+.table-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); margin-top: 16px;
+  overflow: hidden; box-shadow: var(--shadow-sm);
 }
-.empty { padding: 48px; text-align: center; color: #86868b; font-size: 14px; }
-table { width: 100%; border-collapse: collapse; }
-th, td { text-align: left; padding: 10px 14px; font-size: 13px; }
-th { background: #fafafa; color: #6e6e73; font-weight: 500; border-bottom: 1px solid #e5e5e7; }
-td { border-bottom: 1px solid #f0f0f2; }
-tr:last-child td { border-bottom: none; }
-tr:hover td { background: #fafafa; }
-tr { cursor: pointer; }
+.empty-state { padding: 60px 24px; text-align: center; color: var(--text3); }
+.empty-state svg { width: 56px; height: 56px; color: var(--border); margin-bottom: 16px; }
+.empty-state p { font-size: 14px; margin-bottom: 4px; }
+.empty-state span { font-size: 12px; }
 
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead th {
+  text-align: left; padding: 10px 16px;
+  font-weight: 500; color: var(--text3); font-size: 11px;
+  text-transform: uppercase; letter-spacing: .5px;
+  background: #fafbfc; border-bottom: 1px solid var(--border);
+  white-space: nowrap; user-select: none; cursor: pointer;
+  transition: color var(--transition);
+}
+thead th:hover { color: var(--text); }
+thead th.sorted { color: var(--primary); }
+tbody td { padding: 12px 16px; border-bottom: 1px solid var(--border2); vertical-align: middle; }
+tbody tr { cursor: pointer; transition: background var(--transition); }
+tbody tr:hover { background: #fafbfc; }
+tbody tr:last-child td { border-bottom: none; }
+
+.cell-name { font-weight: 500; display: flex; align-items: center; gap: 8px; }
+.avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: #eef2ff; color: var(--primary);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 600; flex-shrink: 0;
+}
 .badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
+  display: inline-block; padding: 2px 8px;
+  border-radius: 4px; font-size: 11px; font-weight: 500;
 }
-.badge-pdf { background: #fce8e6; color: #c5221f; }
-.badge-word { background: #e8f0fe; color: #1967d2; }
-.badge-image { background: #fef7e0; color: #e37400; }
-
+.badge-pdf { background: #fef2f2; color: #b91c1c; }
+.badge-word { background: #eef2ff; color: #3730a3; }
+.badge-image { background: #fffbeb; color: #92400e; }
 .skill-tag {
-  display: inline-block;
-  background: #f0f0f2;
-  color: #6e6e73;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 12px;
-  margin: 2px;
+  display: inline-block; background: var(--border2);
+  color: var(--text2); padding: 2px 8px; border-radius: 4px;
+  font-size: 12px; margin: 1px 3px 1px 0;
+}
+.conf-cell { display: flex; align-items: center; gap: 8px; }
+.conf-bar-bg {
+  width: 48px; height: 4px; background: var(--border2);
+  border-radius: 2px; overflow: hidden; flex-shrink: 0;
+}
+.conf-bar-fill { height: 100%; border-radius: 2px; transition: width .3s; }
+.conf-high { background: var(--success); }
+.conf-mid { background: var(--warning); }
+.conf-low { background: var(--danger); }
+.sync-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+.sync-dot.synced { background: var(--success); }
+.sync-dot.unsynced { background: var(--border); }
+
+/* Panel */
+.overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.2);
+  z-index: 100; opacity: 0; visibility: hidden;
+  transition: opacity .2s, visibility .2s;
+}
+.overlay.open { opacity: 1; visibility: visible; }
+.panel {
+  position: fixed; top: 0; right: 0;
+  width: 520px; max-width: 100vw; height: 100vh;
+  background: var(--surface); z-index: 101;
+  box-shadow: -4px 0 24px rgba(0,0,0,.08);
+  transform: translateX(100%);
+  transition: transform .25s cubic-bezier(.16,1,.3,1);
+  display: flex; flex-direction: column;
+}
+.panel.open { transform: translateX(0); }
+.panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 24px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.panel-header h2 { font-size: 17px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+.panel-close {
+  width: 32px; height: 32px; border: none;
+  background: var(--border2); border-radius: 50%;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  color: var(--text2); transition: all var(--transition);
+}
+.panel-close:hover { background: var(--border); color: var(--text); }
+.panel-tabs {
+  display: flex; border-bottom: 1px solid var(--border);
+  padding: 0 24px; flex-shrink: 0;
+}
+.panel-tab {
+  padding: 12px 16px; font-size: 13px; font-weight: 500;
+  color: var(--text3); cursor: pointer; border: none;
+  background: none; border-bottom: 2px solid transparent;
+  transition: all var(--transition); margin-bottom: -1px;
+}
+.panel-tab:hover { color: var(--text2); }
+.panel-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+.panel-body { flex: 1; overflow-y: auto; padding: 24px; }
+.panel-body .section { margin-bottom: 24px; }
+.panel-body .section:last-child { margin-bottom: 0; }
+.s-label {
+  font-size: 11px; font-weight: 500; color: var(--text3);
+  text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px;
+}
+.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.info-item .i-label { font-size: 12px; color: var(--text3); margin-bottom: 2px; }
+.info-item .i-value { font-size: 14px; color: var(--text); }
+.info-item .i-value:empty::after { content: '—'; color: var(--text3); }
+.text-block {
+  font-size: 13px; line-height: 1.7; color: var(--text2);
+  white-space: pre-wrap; background: var(--border2);
+  border-radius: var(--radius-sm); padding: 12px 16px;
+  max-height: 200px; overflow-y: auto;
 }
 
-/* Detail modal */
-.modal-mask {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.3);
-  z-index: 100;
-  justify-content: center;
-  align-items: flex-start;
-  padding: 60px 20px;
-  overflow-y: auto;
+/* Moka */
+.moka-box {
+  background: #fafbfc; border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 16px;
 }
-.modal-mask.open { display: flex; }
-.modal {
-  background: #fff;
-  border-radius: 12px;
-  width: 100%;
-  max-width: 680px;
-  padding: 32px;
-  position: relative;
+.moka-box select {
+  width: 100%; padding: 8px 12px; border: 1px solid var(--border);
+  border-radius: var(--radius-sm); font-size: 13px;
+  background: var(--surface); color: var(--text); outline: none; margin-bottom: 10px;
 }
-.modal-close {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 20px;
-  color: #86868b;
-  padding: 4px 8px;
+.moka-box select:focus { border-color: var(--primary); }
+.btn-primary {
+  width: 100%; padding: 10px; background: var(--primary);
+  color: #fff; border: none; border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 500; cursor: pointer;
+  transition: background var(--transition);
+  display: flex; align-items: center; justify-content: center; gap: 8px;
 }
-.modal h2 { font-size: 22px; margin-bottom: 20px; }
-.modal .section { margin-bottom: 18px; }
-.modal .section-label { font-size: 12px; color: #86868b; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
-.modal .section-content { font-size: 14px; line-height: 1.6; color: #1d1d1f; white-space: pre-wrap; }
-.modal .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.modal .field { }
-.modal .field .label { font-size: 12px; color: #86868b; }
-.modal .field .value { font-size: 14px; margin-top: 2px; }
+.btn-primary:hover { background: var(--primary-hover); }
+.btn-primary:disabled { background: var(--text3); cursor: not-allowed; }
+.sync-result {
+  margin-top: 10px; padding: 10px 12px;
+  border-radius: var(--radius-sm); font-size: 13px; display: none;
+}
+.sync-result.show { display: block; }
+.sync-result.success { background: #ecfdf5; color: #065f46; }
+.sync-result.error { background: #fef2f2; color: #991b1b; }
+.moka-footer {
+  border-top: 1px solid var(--border); padding: 16px 24px; background: #fafbfc;
+}
+.moka-footer h4 {
+  font-size: 12px; color: var(--text3); text-transform: uppercase;
+  letter-spacing: .5px; margin-bottom: 10px;
+}
+.moka-sync-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 0; font-size: 12px;
+}
+.moka-sync-item .sync-name { font-weight: 500; }
+.moka-sync-item .sync-pos { color: var(--text2); font-size: 11px; }
+.sync-status-badge {
+  padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 500;
+}
+.sync-status-badge.screening { background: #eef2ff; color: #4338ca; }
 
-.conf-bar {
-  height: 4px;
-  border-radius: 2px;
-  background: #e5e5e7;
-  margin-top: 4px;
-  overflow: hidden;
+/* Toast */
+.toast-container {
+  position: fixed; bottom: 24px; right: 24px; z-index: 200;
+  display: flex; flex-direction: column; gap: 8px;
 }
-.conf-bar .fill { height: 100%; border-radius: 2px; background: #34a853; }
+.toast {
+  padding: 12px 20px; border-radius: var(--radius-sm);
+  font-size: 13px; color: #fff;
+  box-shadow: 0 4px 12px rgba(0,0,0,.15);
+  animation: toastIn .25s ease; max-width: 360px;
+}
+.toast.success { background: #059669; }
+.toast.error { background: #dc2626; }
+@keyframes toastIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+
+@media (max-width: 768px) {
+  .main { padding: 16px; }
+  .panel { width: 100vw; }
+  .info-grid { grid-template-columns: 1fr; }
+  .toolbar { flex-direction: column; align-items: stretch; }
+  .search-box { max-width: none; }
+}
 </style>
 </head>
 <body>
-<div class="header">
-  <h1>简历管理系统</h1>
-  <span class="count" id="count">0 份简历</span>
+
+<header class="topbar">
+  <div class="topbar-brand">
+    <div class="topbar-logo">M</div>
+    <span class="topbar-title">简历管理</span>
+  </div>
+  <div class="topbar-right">
+    <span class="topbar-stat">简历 <strong id="statResumes">0</strong></span>
+    <span class="topbar-stat">已同步 <strong id="statSynced">0</strong></span>
+  </div>
+</header>
+
+<div class="layout">
+  <main class="main">
+    <div class="main-inner">
+
+      <div class="upload-card" id="uploadZone">
+        <div class="upload-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </div>
+        <div class="upload-title">拖拽简历文件到此处上传</div>
+        <div class="upload-hint">支持单个或批量上传，单文件最大 20MB</div>
+        <div class="upload-formats">
+          <span class="format-tag"><span class="dot dot-pdf"></span>PDF</span>
+          <span class="format-tag"><span class="dot dot-word"></span>Word</span>
+          <span class="format-tag"><span class="dot dot-img"></span>PNG / JPG</span>
+        </div>
+        <label for="fileInput" class="upload-btn">选择文件</label>
+        <input type="file" id="fileInput" accept=".pdf,.docx,.doc,.png,.jpg,.jpeg,.webp,.bmp" multiple hidden>
+      </div>
+
+      <div class="status-bar" id="statusBar"></div>
+
+      <div class="toolbar" id="toolbar">
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="searchInput" placeholder="搜索姓名、手机、邮箱、学校..." oninput="applyFilters()">
+        </div>
+        <div class="toolbar-actions">
+          <button class="btn-ghost active" id="filterAll" onclick="setFilter('all')">全部</button>
+          <button class="btn-ghost" id="filterSynced" onclick="setFilter('synced')">已同步</button>
+          <button class="btn-ghost" id="filterUnsynced" onclick="setFilter('unsynced')">未同步</button>
+        </div>
+      </div>
+
+      <div class="table-card" id="tableCard">
+        <div class="empty-state" id="emptyState">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+          <p>还没有简历</p>
+          <span>拖拽文件到上方区域或点击"选择文件"开始上传</span>
+        </div>
+        <table id="table" style="display:none">
+          <thead><tr>
+            <th data-sort="name" onclick="toggleSort('name')">姓名</th>
+            <th data-sort="phone">手机</th>
+            <th data-sort="email">邮箱</th>
+            <th data-sort="education">学历</th>
+            <th>格式</th>
+            <th>技能</th>
+            <th data-sort="confidence" class="sorted">置信度</th>
+            <th>同步</th>
+          </tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+
+    </div>
+  </main>
+
+  <div class="overlay" id="overlay" onclick="closePanel()"></div>
+  <aside class="panel" id="panel">
+    <div class="panel-header">
+      <h2>
+        <span class="avatar" id="panelAvatar" style="width:36px;height:36px;font-size:15px"></span>
+        <span id="panelName"></span>
+      </h2>
+      <button class="panel-close" onclick="closePanel()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="panel-tabs">
+      <button class="panel-tab active" onclick="switchTab('info')" id="tabInfo">简历详情</button>
+      <button class="panel-tab" onclick="switchTab('moka')" id="tabMoka">Moka 同步</button>
+    </div>
+    <div class="panel-body" id="panelBody"></div>
+    <div class="moka-footer" id="mokaFooter">
+      <h4>同步记录</h4>
+      <div id="mokaFooterContent">暂无同步记录</div>
+    </div>
+  </aside>
 </div>
 
-<div class="container">
-  <div class="upload-zone" id="uploadZone">
-    <p>拖拽简历文件到此处，或点击上传</p>
-    <p class="hint">支持 PDF · Word · 图片（PNG/JPG），最大 20MB</p>
-    <label for="fileInput" class="upload-btn">选择文件</label>
-    <input type="file" id="fileInput" accept=".pdf,.docx,.doc,.png,.jpg,.jpeg,.webp,.bmp" multiple hidden>
-  </div>
-  <div class="status" id="status"></div>
-
-  <div class="table-wrap">
-    <div class="empty" id="empty">还没有简历，上传一份试试</div>
-    <table id="table" style="display:none">
-      <thead><tr>
-        <th>姓名</th><th>手机</th><th>邮箱</th><th>学历</th><th>格式</th><th>技能</th><th>置信度</th>
-      </tr></thead>
-      <tbody id="tbody"></tbody>
-    </table>
-  </div>
-</div>
-
-<div class="modal-mask" id="modalMask" onclick="closeModal(event)">
-  <div class="modal" onclick="event.stopPropagation()">
-    <button class="modal-close" onclick="closeModal()">&times;</button>
-    <div id="modalContent"></div>
-  </div>
-</div>
+<div class="toast-container" id="toastContainer"></div>
 
 <script>
 var API = '/api';
 
-// ── 上传 ────────────────────────────────────────────────
+var resumes = [];
+var positions = [];
+var syncedIds = new Set();
+var currentFilter = 'all';
+var currentSort = 'confidence';
+var sortDir = 'desc';
+var panelResumeId = null;
+
+async function init() {
+  await fetchList();
+  loadPositions();
+  loadMokaCandidates();
+  syncFromLocal();
+}
+function syncFromLocal() {
+  syncedIds.clear();
+  resumes.forEach(function(r) {
+    if (r.syncedToMoka) syncedIds.add(r.id);
+  });
+  applyFilters();
+}
+
+
+/* Upload */
 var zone = document.getElementById('uploadZone');
 var input = document.getElementById('fileInput');
-var status = document.getElementById('status');
-
 zone.addEventListener('dragover', function(e) { e.preventDefault(); zone.classList.add('dragover'); });
 zone.addEventListener('dragleave', function() { zone.classList.remove('dragover'); });
 zone.addEventListener('drop', function(e) {
-  e.preventDefault();
-  zone.classList.remove('dragover');
+  e.preventDefault(); zone.classList.remove('dragover');
   if (e.dataTransfer.files.length) uploadFiles(e.dataTransfer.files);
 });
 input.addEventListener('change', function() {
-  console.log('File input change, files:', input.files.length);
-  if (input.files.length) {
-    uploadFiles(input.files);
-  }
-  input.value = '';
+  if (input.files.length) { uploadFiles(input.files); input.value = ''; }
 });
 
 async function uploadFiles(files) {
-  zone.style.opacity = '0.5';
-  zone.style.pointerEvents = 'none';
-
+  zone.classList.add('processing');
   for (var i = 0; i < files.length; i++) {
     var f = files[i];
-    console.log('Uploading:', f.name, f.size, f.type);
-    showStatus('loading', '正在上传解析: ' + f.name + ' ...');
-    var fd = new FormData();
-    fd.append('file', f);
+    showStatus('loading', '<span class="spin"></span> \u6b63\u5728\u89e3\u6790 ' + f.name + ' ...');
+    var fd = new FormData(); fd.append('file', f);
     try {
       var resp = await fetch(API + '/resumes/upload', { method: 'POST', body: fd });
       var data = await resp.json();
-      console.log('Upload response:', resp.status, data);
       if (resp.ok) {
-        showStatus('success', f.name + ' 解析完成');
-        fetchList();
+        showStatus('success', '\u2713 ' + f.name + ' \u2014 ' + (data.name || '\u672a\u77e5') + '\uff08\u7f6e\u4fe1\u5ea6 ' + Math.round((data.confidence || 0) * 100) + '%\uff09');
+        toast(f.name + ' \u89e3\u6790\u5b8c\u6210', 'success');
       } else {
-        showStatus('error', data.error || '上传失败');
+        showStatus('error', data.error || '\u4e0a\u4f20\u5931\u8d25');
+        toast(data.error || '\u4e0a\u4f20\u5931\u8d25', 'error');
       }
     } catch (e) {
-      console.error('Upload error:', e);
-      showStatus('error', '网络错误: ' + (e.message || '无法连接服务器，请确认服务已启动'));
+      showStatus('error', '\u7f51\u7edc\u9519\u8bef\uff0c\u8bf7\u786e\u8ba4\u670d\u52a1\u5df2\u542f\u52a8');
+      toast('\u7f51\u7edc\u9519\u8bef', 'error');
     }
   }
-
-  zone.style.opacity = '';
-  zone.style.pointerEvents = '';
+  zone.classList.remove('processing');
+  await fetchList();
 }
 
 function showStatus(type, msg) {
-  console.log('Status:', type, msg);
-  status.className = 'status ' + type;
-  status.textContent = msg;
-  if (type === 'success') setTimeout(function() { status.className = 'status'; }, 4000);
+  var bar = document.getElementById('statusBar');
+  bar.className = 'status-bar show ' + type;
+  bar.innerHTML = msg;
+  if (type === 'success') setTimeout(function() { bar.className = 'status-bar'; }, 6000);
 }
 
-// ── 列表 ────────────────────────────────────────────────
+/* List */
 async function fetchList() {
   try {
     var resp = await fetch(API + '/resumes');
-    var resumes = await resp.json();
-    renderList(resumes);
-  } catch (e) {
-    console.error('Fetch list error:', e);
-  }
+    resumes = await resp.json();
+    applyFilters();
+  } catch(e) { console.error(e); }
 }
 
-function renderList(resumes) {
-  document.getElementById('count').textContent = resumes.length + ' 份简历';
-  var table = document.getElementById('table');
-  var empty = document.getElementById('empty');
-  var tbody = document.getElementById('tbody');
+function applyFilters() {
+  var q = (document.getElementById('searchInput').value || '').toLowerCase();
+  var filtered = resumes.filter(function(r) {
+    if (currentFilter === 'synced' && !syncedIds.has(r.id)) return false;
+    if (currentFilter === 'unsynced' && syncedIds.has(r.id)) return false;
+    if (q) {
+      var hay = (r.name + ' ' + r.phone + ' ' + r.email + ' ' + r.school + ' ' + (r.skills || []).join(' ')).toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  filtered.sort(function(a, b) {
+    var va = a[currentSort] || '';
+    var vb = b[currentSort] || '';
+    if (typeof va === 'number') return sortDir === 'desc' ? vb - va : va - vb;
+    return sortDir === 'desc' ? String(vb).localeCompare(String(va)) : String(va).localeCompare(String(vb));
+  });
+  renderList(filtered);
+}
 
+function renderList(list) {
+  document.getElementById('statResumes').textContent = resumes.length;
+  document.getElementById('statSynced').textContent = syncedIds.size;
+  var table = document.getElementById('table');
+  var empty = document.getElementById('emptyState');
+  var tbody = document.getElementById('tbody');
+  var toolbar = document.getElementById('toolbar');
   if (resumes.length === 0) {
-    table.style.display = 'none';
-    empty.style.display = 'block';
+    table.style.display = 'none'; empty.style.display = ''; toolbar.style.display = 'none';
     return;
   }
-  table.style.display = '';
-  empty.style.display = 'none';
-
-  tbody.innerHTML = resumes.map(function(r) {
+  toolbar.style.display = '';
+  if (list.length === 0) {
+    table.style.display = 'none'; empty.style.display = '';
+    empty.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><p>\u6ca1\u6709\u5339\u914d\u7684\u7b80\u5386</p><span>\u8c03\u6574\u641c\u7d22\u6761\u4ef6\u6216\u5207\u6362\u7b5b\u9009</span>';
+    return;
+  }
+  table.style.display = ''; empty.style.display = 'none';
+  tbody.innerHTML = list.map(function(r) {
+    var initials = (r.name || '?').charAt(0);
     var fmtBadge = '<span class="badge badge-' + r.sourceFormat + '">' + r.sourceFormat.toUpperCase() + '</span>';
-    var skills = (r.skills || []).slice(0, 3).map(function(s) {
-      return '<span class="skill-tag">' + s + '</span>';
-    }).join('');
+    var skills = (r.skills || []).slice(0, 3).map(function(s) { return '<span class="skill-tag">' + s + '</span>'; }).join('');
     var pct = Math.round((r.confidence || 0) * 100);
-    return '<tr onclick="showDetail(' + r.id + ')">' +
-      '<td>' + (r.name || '-') + '</td>' +
-      '<td>' + (r.phone || '-') + '</td>' +
-      '<td>' + (r.email || '-') + '</td>' +
-      '<td>' + (r.education || '-') + '</td>' +
-      '<td>' + fmtBadge + '</td>' +
-      '<td>' + (skills || '-') + '</td>' +
-      '<td>' + pct + '%</td>' +
-      '</tr>';
+    var confClass = pct >= 80 ? 'conf-high' : pct >= 60 ? 'conf-mid' : 'conf-low';
+    var synced = syncedIds.has(r.id);
+    var syncDot = synced ? '<span class="sync-dot synced" title="\u5df2\u540c\u6b65\u5230 Moka"></span>' : '<span class="sync-dot unsynced" title="\u672a\u540c\u6b65"></span>';
+    return '<tr onclick="openPanel(' + r.id + ')"><td><div class="cell-name"><span class="avatar">' + initials + '</span>' + (r.name || '-') + '</div></td><td>' + (r.phone || '-') + '</td><td>' + (r.email || '-') + '</td><td>' + (r.education || '-') + '</td><td>' + fmtBadge + '</td><td>' + (skills || '-') + '</td><td><div class="conf-cell"><div class="conf-bar-bg"><div class="conf-bar-fill ' + confClass + '" style="width:' + pct + '%"></div></div>' + pct + '%</div></td><td>' + syncDot + '</td></tr>';
   }).join('');
 }
 
-// ── 详情弹窗 ────────────────────────────────────────────
-async function showDetail(id) {
-  var resp = await fetch(API + '/resumes/' + id);
-  var r = await resp.json();
+function setFilter(f) {
+  currentFilter = f;
+  document.getElementById('filterAll').classList.toggle('active', f === 'all');
+  document.getElementById('filterSynced').classList.toggle('active', f === 'synced');
+  document.getElementById('filterUnsynced').classList.toggle('active', f === 'unsynced');
+  applyFilters();
+}
+
+function toggleSort(col) {
+  if (currentSort === col) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+  else { currentSort = col; sortDir = 'desc'; }
+  document.querySelectorAll('thead th').forEach(function(th) { th.classList.toggle('sorted', th.dataset.sort === currentSort); });
+  applyFilters();
+}
+
+/* Panel */
+function openPanel(id) {
+  panelResumeId = id;
+  document.getElementById('overlay').classList.add('open');
+  document.getElementById('panel').classList.add('open');
+  switchTab('info');
+}
+function closePanel() {
+  document.getElementById('overlay').classList.remove('open');
+  document.getElementById('panel').classList.remove('open');
+  panelResumeId = null;
+}
+function switchTab(tab) {
+  document.getElementById('tabInfo').classList.toggle('active', tab === 'info');
+  document.getElementById('tabMoka').classList.toggle('active', tab === 'moka');
+  if (tab === 'info') renderPanelInfo(); else renderPanelMoka();
+}
+
+function renderPanelInfo() {
+  var r = resumes.find(function(x) { return x.id === panelResumeId; });
+  if (!r) return;
+  var initials = (r.name || '?').charAt(0);
+  document.getElementById('panelAvatar').textContent = initials;
+  document.getElementById('panelName').textContent = r.name || '未识别';
   var pct = Math.round((r.confidence || 0) * 100);
+  var confClass = pct >= 80 ? 'conf-high' : pct >= 60 ? 'conf-mid' : 'conf-low';
+  var html = '';
 
-  var html = '<h2>' + (r.name || '未识别姓名') + '</h2>';
+  // 原始文件预览
+  if (r.sourcePath) {
+    if (r.sourceFormat === 'image') {
+      html += '<div class="section"><div class="s-label">原始文件</div><img src="/uploads/' + r.sourcePath + '" style="max-width:100%;max-height:400px;border-radius:6px;border:1px solid var(--border);display:block"></div>';
+    } else if (r.sourceFormat === 'pdf') {
+      html += '<div class="section"><div class="s-label">原始文件</div><iframe src="/uploads/' + r.sourcePath + '" style="width:100%;height:400px;border:1px solid var(--border);border-radius:6px"></iframe></div>';
+    } else {
+      html += '<div class="section"><div class="s-label">原始文件</div><a href="/uploads/' + r.sourcePath + '" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:var(--primary);color:#fff;border-radius:6px;font-size:13px;text-decoration:none"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>下载 ' + (r.fileName || '简历') + '</a></div>';
+    }
+  }
 
-  html += '<div class="section"><div class="section-label">基本信息</div>';
-  html += '<div class="field-grid">';
-  html += field('手机', r.phone);
-  html += field('邮箱', r.email);
-  html += field('性别', r.gender);
-  html += field('出生年份', r.birthYear);
-  html += field('学历', r.education);
-  html += field('学校', r.school);
-  html += field('专业', r.major);
-  html += field('工作年限', r.workYears);
+  // 解析置信度
+  html += '<div class="section"><div class="s-label">解析置信度</div><div class="conf-cell"><div class="conf-bar-bg" style="width:120px"><div class="conf-bar-fill ' + confClass + '" style="width:' + pct + '%"></div></div><span style="font-size:14px;font-weight:500">' + pct + '%</span></div></div>';
+
+  // 基本信息
+  html += '<div class="section"><div class="s-label">基本信息</div><div class="info-grid">';
+  html += fi('手机', r.phone); html += fi('邮箱', r.email);
+  html += fi('性别', r.gender); html += fi('出生年份', r.birthYear);
+  html += fi('学历', r.education); html += fi('学校', r.school);
+  html += fi('专业', r.major); html += fi('工作年限', r.workYears);
   html += '</div></div>';
 
   if (r.currentCompany || r.currentPosition) {
-    html += '<div class="section"><div class="section-label">当前职位</div>';
-    html += '<div class="field-grid">';
-    html += field('公司', r.currentCompany);
-    html += field('职位', r.currentPosition);
+    html += '<div class="section"><div class="s-label">当前职位</div><div class="info-grid">';
+    html += fi('公司', r.currentCompany); html += fi('职位', r.currentPosition);
     html += '</div></div>';
   }
 
   if (r.skills && r.skills.length) {
-    html += '<div class="section"><div class="section-label">技能标签</div>';
-    html += '<div class="section-content">';
-    html += r.skills.map(function(s) { return '<span class="skill-tag">' + s + '</span>'; }).join(' ');
+    html += '<div class="section"><div class="s-label">技能</div><div>';
+    html += r.skills.map(function(s) { return '<span class="skill-tag" style="font-size:12px;padding:4px 10px">' + s + '</span>'; }).join(' ');
     html += '</div></div>';
   }
 
   if (r.workExperienceText) {
-    html += '<div class="section"><div class="section-label">工作经历</div>';
-    html += '<div class="section-content">' + (r.workExperienceText || '-') + '</div></div>';
+    html += '<div class="section"><div class="s-label">工作经历</div><div class="text-block">' + (r.workExperienceText || '—') + '</div></div>';
   }
 
   if (r.educationText) {
-    html += '<div class="section"><div class="section-label">教育经历</div>';
-    html += '<div class="section-content">' + (r.educationText || '-') + '</div></div>';
+    html += '<div class="section"><div class="s-label">教育背景</div><div class="text-block">' + (r.educationText || '—') + '</div></div>';
   }
 
-  html += '<div class="section"><div class="section-label">解析置信度</div>';
-  html += '<div>' + pct + '%</div>';
-  html += '<div class="conf-bar"><div class="fill" style="width:' + pct + '%"></div></div>';
-  html += '</div>';
+  // 原始识别文本
+  if (r.rawText) {
+    html += '<div class="section"><div class="s-label">原始识别文本</div>';
+    html += '<details open><summary style="font-size:12px;color:var(--primary);cursor:pointer;margin-bottom:6px">展开原始数据 (' + r.rawText.length + ' 字符)</summary>';
+    html += '<div class="text-block" style="max-height:300px;font-size:11px;font-family:monospace">' + r.rawText.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>';
+    html += '</details></div>';
+  }
 
-  document.getElementById('modalContent').innerHTML = html;
-  document.getElementById('modalMask').classList.add('open');
+  // 文件信息
+  html += '<div class="section"><div class="s-label">文件信息</div><div style="font-size:12px;color:var(--text3)">格式: ' + (r.sourceFormat || '?').toUpperCase();
+  if (r.fileName) html += ' · 文件: ' + r.fileName;
+  if (r.createdAt) html += ' · 上传: ' + new Date(r.createdAt).toLocaleString('zh-CN');
+  html += '</div></div>';
+
+  document.getElementById('panelBody').innerHTML = html;
 }
 
-function field(label, value) {
-  return '<div class="field"><div class="label">' + label + '</div><div class="value">' + (value || '-') + '</div></div>';
+function fi(label, value) {
+  return '<div class="info-item"><div class="i-label">' + label + '</div><div class="i-value">' + (value || '') + '</div></div>';
 }
 
-function closeModal(e) {
-  if (e && e.target !== document.getElementById('modalMask')) return;
-  document.getElementById('modalMask').classList.remove('open');
+/* Moka */
+async function loadPositions() {
+  try {
+    var r = await fetch(API + '/moka/positions');
+    var d = await r.json();
+    positions = d.data.filter(function(p) { return p.status === 'open'; });
+  } catch(e) {}
+}
+async function loadMokaCandidates() {
+  try {
+    var r = await fetch(API + '/moka/applications');
+    var d = await r.json();
+    renderMokaFooter(d.data || []);
+  } catch(e) {}
+}
+function renderMokaFooter(apps) {
+  var el = document.getElementById('mokaFooterContent');
+  if (!apps || apps.length === 0) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--text3)">\u6682\u65e0\u540c\u6b65\u8bb0\u5f55</div>';
+    return;
+  }
+  el.innerHTML = apps.map(function(a) {
+    return '<div class="moka-sync-item"><div><span class="sync-name">' + a.candidateName + '</span><br><span class="sync-pos">' + a.positionName + '</span></div><span class="sync-status-badge screening">' + (a.status || 'screening') + '</span></div>';
+  }).join('');
+  applyFilters();
+}
+function renderPanelMoka() {
+  var r = resumes.find(function(x) { return x.id === panelResumeId; });
+  if (!r) return;
+  var html = '';
+  html += '<div class="section"><div class="s-label">\u540c\u6b65\u5230 Moka</div>';
+  if (syncedIds.has(panelResumeId)) {
+    html += '<div class="moka-box"><p style="font-size:13px;color:var(--success);font-weight:500">\u2713 \u8be5\u7b80\u5386\u5df2\u540c\u6b65\u5230 Moka</p></div>';
+  } else {
+    var opts = positions.map(function(p) { return '<option value="' + p.id + '">' + p.name + '\uff08' + p.department + '\uff09</option>'; }).join('');
+    html += '<div class="moka-box"><select id="mokaPosSelect">' + opts + '</select><button class="btn-primary" id="syncBtn" onclick="syncToMoka()">\u540c\u6b65\u5230 Moka</button><div class="sync-result" id="syncResult"></div></div>';
+  }
+  document.getElementById('panelBody').innerHTML = html;
+}
+async function syncToMoka() {
+  var posSelect = document.getElementById('mokaPosSelect');
+  var positionId = posSelect ? parseInt(posSelect.value) : null;
+  var btn = document.getElementById('syncBtn');
+  var result = document.getElementById('syncResult');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin" style="width:14px;height:14px;border-width:1.5px;border-color:#fff;border-top-color:transparent"></span> \u540c\u6b65\u4e2d...'; }
+  if (result) { result.className = 'sync-result'; }
+  try {
+    var r = await fetch(API + '/resumes/' + panelResumeId + '/sync-to-moka', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ positionId: positionId }),
+    });
+    var d = await r.json();
+    if (r.ok && d.success) {
+      syncedIds.add(panelResumeId);
+      if (result) { result.className = 'sync-result success show'; result.textContent = '\u2713 \u540c\u6b65\u6210\u529f\uff01\u5019\u9009\u4eba: ' + d.candidate.name + '\uff0c\u6295\u9012: ' + d.application.positionName; }
+      if (btn) { btn.textContent = '\u5df2\u540c\u6b65'; }
+      toast('\u540c\u6b65\u6210\u529f\uff1a' + d.candidate.name + ' \u2192 ' + d.application.positionName, 'success');
+      loadMokaCandidates(); applyFilters();
+    } else {
+      if (result) { result.className = 'sync-result error show'; result.textContent = '\u2717 ' + (d.error || '\u540c\u6b65\u5931\u8d25'); }
+      if (btn) { btn.disabled = false; btn.textContent = '\u91cd\u8bd5'; }
+    }
+  } catch(e) {
+    if (result) { result.className = 'sync-result error show'; result.textContent = '\u2717 \u7f51\u7edc\u9519\u8bef'; }
+    if (btn) { btn.disabled = false; btn.textContent = '\u91cd\u8bd5'; }
+  }
 }
 
-// ── 初始化 ──────────────────────────────────────────────
-fetchList();
+/* Toast */
+function toast(msg, type) {
+  var container = document.getElementById('toastContainer');
+  var el = document.createElement('div');
+  el.className = 'toast ' + (type || 'success');
+  el.textContent = msg;
+  container.appendChild(el);
+  setTimeout(function() {
+    el.style.opacity = '0'; el.style.transition = 'opacity .3s';
+    setTimeout(function() { el.remove(); }, 300);
+  }, 3000);
+}
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closePanel();
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); document.getElementById('searchInput').focus(); }
+});
+init();
+setInterval(function() { loadMokaCandidates(); }, 8000);
 </script>
 </body>
 </html>
+

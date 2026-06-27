@@ -16,6 +16,12 @@ export interface ResumeData {
   rawText: string;
   sourceFormat: 'pdf' | 'word' | 'image';
   confidence: number;
+  fileName?: string;
+  sourcePath?: string;
+  createdAt?: string;
+  syncedToMoka?: boolean;
+  mokaCandidateId?: number;
+  mokaPositionName?: string;
 }
 
 export interface ParseResult {

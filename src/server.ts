@@ -5,18 +5,22 @@ import path from 'path';
 import fs from 'fs';
 import { processResume } from './resume-processor';
 import { ResumeData } from './types';
+import { loadResumes, saveResumes } from './store';
+import { syncResume, getPositions, getApplications, getConfig } from './moka-client';
 
 const app = express();
 const PORT = 3001;
 
 // ── 中间件 ──────────────────────────────────────────────
 app.use(cors());
+app.use((_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // ── 文件上传配置 ─────────────────────────────────────────
 const uploadDir = path.join(__dirname, '..', 'uploads');
 fs.mkdirSync(uploadDir, { recursive: true });
+app.use('/uploads', express.static(uploadDir));
 
 const storage = multer.diskStorage({
   destination: uploadDir,
@@ -41,8 +45,9 @@ const upload = multer({
   },
 });
 
-// ── 内存存储（后续换数据库） ─────────────────────────────
-const resumeStore: ResumeData[] = [];
+// ── 数据存储（JSON 文件持久化） ──────────────────────────
+const resumeStore: ResumeData[] = loadResumes();
+console.log(`[store] Loaded ${resumeStore.length} resumes from disk`);
 
 // ── API ─────────────────────────────────────────────────
 
@@ -58,7 +63,11 @@ app.post('/api/resumes/upload', upload.single('file'), async (req, res) => {
     const resume = await processResume(filePath);
 
     // 存入内存
+    resume.fileName = req.file.originalname;
+    resume.sourcePath = req.file.filename;
+    resume.createdAt = new Date().toISOString();
     resumeStore.push(resume);
+    saveResumes(resumeStore);
 
     res.json({
       id: resumeStore.length - 1,
@@ -75,14 +84,10 @@ app.post('/api/resumes/upload', upload.single('file'), async (req, res) => {
 app.get('/api/resumes', (_req, res) => {
   res.json(resumeStore.map((r, i) => ({
     id: i,
-    name: r.name,
-    phone: r.phone,
-    email: r.email,
-    education: r.education,
-    school: r.school,
-    skills: r.skills,
-    sourceFormat: r.sourceFormat,
-    confidence: r.confidence,
+    ...r,
+    syncedToMoka: r.syncedToMoka || false,
+    mokaCandidateId: r.mokaCandidateId,
+    mokaPositionName: r.mokaPositionName,
   })));
 });
 
@@ -94,6 +99,74 @@ app.get('/api/resumes/:id', (req, res) => {
     return;
   }
   res.json({ id, ...resumeStore[id] });
+});
+
+// ── Moka 同步 ──────────────────────────────────────────
+const mokaConfig = getConfig();
+console.log(`[moka] Mode: ${mokaConfig.mode}, Base: ${mokaConfig.baseUrl}`);
+
+app.post('/api/resumes/:id/sync-to-moka', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id) || id < 0 || id >= resumeStore.length) {
+      res.status(404).json({ error: '简历不存在' });
+      return;
+    }
+
+    const resume = resumeStore[id];
+    const { positionId } = req.body;
+    if (!positionId) {
+      res.status(400).json({ error: '请选择职位' });
+      return;
+    }
+
+    const result = await syncResume(
+      {
+        name: resume.name,
+        phone: resume.phone,
+        email: resume.email || '',
+        education: resume.education || '',
+        school: resume.school || '',
+      },
+      resume.fileName || ('resume_' + id),
+      positionId,
+    );
+
+    // 标记本地简历为已同步，持久化
+    resume.syncedToMoka = true;
+    resume.mokaCandidateId = result.candidate.id;
+    resume.mokaPositionName = result.application.positionName;
+    saveResumes(resumeStore);
+
+    res.json({
+      success: true,
+      candidate: result.candidate,
+      application: result.application,
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : '同步失败';
+    res.status(500).json({ error: msg });
+  }
+});
+
+/** Moka 职位列表 */
+app.get('/api/moka/positions', async (_req, res) => {
+  try {
+    const positions = await getPositions();
+    res.json({ code: 0, data: positions });
+  } catch (err) {
+    res.status(500).json({ error: '获取职位失败' });
+  }
+});
+
+/** Moka 投递记录 */
+app.get('/api/moka/applications', async (_req, res) => {
+  try {
+    const apps = await getApplications();
+    res.json({ code: 0, data: apps });
+  } catch (err) {
+    res.status(500).json({ error: '获取投递记录失败' });
+  }
 });
 
 // ── 启动 ────────────────────────────────────────────────

@@ -38,7 +38,6 @@ function normalizeText(text: string): string {
 }
 
 function extractPhone(text: string): string {
-  // Remove spaces, dashes, dots before matching
   const cleaned = text.replace(/[\s\-\.]/g, '');
   const m = cleaned.match(/1[3-9]\d{9}/);
   return m ? m[0] : '';
@@ -50,7 +49,7 @@ function extractEmail(text: string): string {
 }
 
 function extractName(text: string): string {
-  const noise = ['简历', '个人', '应聘', '求职', '联系', '邮箱', '电话', '地址', '性别'];
+  const noise = ['简历', '个人', '应聘', '求职', '联系', '邮箱', '电话', '地址', '性别', '求职意向'];
   const lines = text.split('\n');
   for (const line of lines) {
     const t = line.trim();
@@ -84,12 +83,13 @@ function extractEducation(text: string): string {
 }
 
 function extractSchool(text: string): string {
-  const m = text.match(/([^\s,]{2,20}(?:大学|学院))/);
+  const m = text.match(/(.{2,30}(?:大学|学院))/);
   return m ? m[1] : '';
 }
 
 function extractMajor(text: string): string {
-  const m = text.match(/(?:专业|主修)[：:\s]*([^\n]{2,20})/);
+  // Match "专业：XXX" or "XX专业" — avoid "主修课程"
+  const m = text.match(/(?:专业[：:\s]*|主修(?!课程))([^\n]{2,30})/);
   return m ? m[1].trim() : '';
 }
 
@@ -108,13 +108,25 @@ function extractSkills(text: string): string[] {
 }
 
 function extractCurrentCompany(text: string): string {
-  const m = text.match(/([^\n]{3,30})\s*[-–—至到]\s*(?:至今|现在|Present)/);
-  return m ? m[1].trim().replace(/^[·•\-]+/, '').trim() : '';
+  // Match: company name before "至今" or "现在" or "Present"
+  const m = text.match(/(.{4,40})\s*[-–—至到]\s*(?:至今|现在|Present|present)/);
+  if (m) return m[1].trim().replace(/^[·•\-–—]+/, '').trim();
+
+  // Match: date range followed by company name on next line
+  const m2 = text.match(/20\d{2}\.\d{2}\s*[-–—至到]\s*(?:20\d{2}\.\d{2}|至今).*\n\s*(.{4,40}(?:公司|集团|有限|科技))/);
+  if (m2) return m2[1].trim();
+  return '';
 }
 
 function extractCurrentPosition(text: string): string {
-  const m = text.match(/(?:职位|岗位|职务)[：:\s]*([^\n]{2,20})/);
-  return m ? m[1].trim() : '';
+  // Match: job intent line
+  const m = text.match(/(?:求职意向|应聘职位|期望职位|意向岗位)[：:\s]*([^\n]{2,30})/);
+  if (m) return m[1].trim();
+
+  // Match: position tag
+  const m2 = text.match(/(?:职位|岗位|职务)[：:\s]*([^\n]{2,20})/);
+  if (m2) return m2[1].trim();
+  return '';
 }
 
 function extractWorkYears(text: string): string {

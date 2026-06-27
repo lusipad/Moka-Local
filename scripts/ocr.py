@@ -10,9 +10,12 @@ os.environ["KMP_AFFINITY"] = "disabled"
 os.environ["GLOG_logtostderr"] = "1"  # PaddlePaddle logs → stderr
 os.environ["GLOG_v"] = "0"
 
+import io
 import json
 import sys
 from pathlib import Path
+
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 from paddleocr import PaddleOCR
 

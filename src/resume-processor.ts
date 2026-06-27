@@ -2,8 +2,9 @@ import path from 'path';
 import { ResumeData, ParseResult } from './types';
 import { parsePdf } from './parsers/pdf-parser';
 import { parseWord } from './parsers/word-parser';
+import { parseDoc } from './parsers/doc-parser';
 import { parseImage } from './parsers/image-parser';
-import { extractFields } from './extractors/field-extractor';
+import { getAiExtractor } from './ai';
 
 const FORMAT_MAP: Record<string, 'pdf' | 'word' | 'image'> = {
   '.pdf': 'pdf',
@@ -27,12 +28,17 @@ export async function processResume(filePath: string): Promise<ResumeData> {
   let parseResult: ParseResult;
   switch (format) {
     case 'pdf': parseResult = await parsePdf(filePath); break;
-    case 'word': parseResult = await parseWord(filePath); break;
+    case 'word':
+      // .docx goes to mammoth, .doc goes to antiword/textract
+      parseResult = ext === '.doc'
+        ? await parseDoc(filePath)
+        : await parseWord(filePath);
+      break;
     case 'image': parseResult = await parseImage(filePath); break;
   }
 
-  const resume = extractFields(parseResult.text);
-  resume.sourceFormat = format;
+  const extractor = getAiExtractor();
+  const resume = await extractor.extract(parseResult.text, format);
 
   console.log(`Parsed resume (${format}, ${parseResult.elapsedMs}ms)`);
   console.log(`  name: ${resume.name || '?'}`);
@@ -48,4 +54,5 @@ export async function processResume(filePath: string): Promise<ResumeData> {
 export { parsePdf } from './parsers/pdf-parser';
 export { parseWord } from './parsers/word-parser';
 export { parseImage } from './parsers/image-parser';
-export { extractFields } from './extractors/field-extractor';
+export { getAiExtractor, registerExtractor } from './ai';
+export { getOcrEngine, registerEngine } from './ocr';

@@ -81,6 +81,9 @@ jobs:
           python\python.exe get-pip.py --no-warn-script-location
           del get-pip.py
 
+          # Install build tools first (required by packages like textract that build from source)
+          python\python.exe -m pip install --no-warn-script-location setuptools wheel
+
           # Install Python dependencies
           python\python.exe -m pip install --no-warn-script-location paddlepaddle paddleocr pdf2image textract olefile
 

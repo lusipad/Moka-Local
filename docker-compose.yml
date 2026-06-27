@@ -1,0 +1,17 @@
+services:
+  app:
+    build: .
+    ports:
+      - "3001:3001"
+      - "3002:3002"
+    volumes:
+      - ./data:/app/data
+      - ./uploads:/app/uploads
+    environment:
+      - OCR_ENGINE=paddleocr
+      - AI_EXTRACTOR=rule
+      - PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK=True
+      # 真实 Moka: 取消注释下面三行
+      # - MOKA_BASE_URL=https://openapi.moka.com
+      # - MOKA_API_KEY=your_client_id
+      # - MOKA_CLIENT_SECRET=your_client_secret

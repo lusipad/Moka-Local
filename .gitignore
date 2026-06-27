@@ -6,3 +6,5 @@ __pycache__/
 .paddlex/
 *.html
 !public/index.html
+
+.env
